@@ -9,6 +9,10 @@ kinesis:PutRecord on the target stream.
 
 Run:
     python binance_kinesis_producer.py
+
+Auto-reconnects on disconnect (Binance closes connections after 24h as a
+matter of policy, and network hiccups happen) so this can be left running
+for long stretches without manual restarts.
 """
 
 import json
@@ -66,16 +70,32 @@ def on_close(ws, close_status_code, close_msg):
 
 
 def on_open(ws):
+    global reconnect_delay
+    reconnect_delay = 2
     print(f"Connected. Streaming {STREAMS} -> Kinesis stream '{KINESIS_STREAM_NAME}'")
     print("Press Ctrl+C to stop.\n")
 
 
 if __name__ == "__main__":
-    ws = websocket.WebSocketApp(
-        WS_URL,
-        on_open=on_open,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close,
-    )
-    ws.run_forever(ping_interval=20, ping_timeout=10)
+    reconnect_delay = 2  # seconds, doubles on repeated failures up to a cap
+    max_reconnect_delay = 60
+
+    while True:
+        ws = websocket.WebSocketApp(
+            WS_URL,
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close,
+        )
+        try:
+            ws.run_forever(ping_interval=20, ping_timeout=10)
+        except KeyboardInterrupt:
+            print("Stopped by user.")
+            break
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+
+        print(f"Disconnected. Reconnecting in {reconnect_delay}s ...")
+        time.sleep(reconnect_delay)
+        reconnect_delay = min(reconnect_delay * 2, max_reconnect_delay)

@@ -7,4 +7,3 @@ venv/
 .DS_Store
 flink-connectors/
 flink_env/
-dashboard_env/
