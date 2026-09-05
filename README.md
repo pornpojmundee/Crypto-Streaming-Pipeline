@@ -38,6 +38,10 @@ S3 + Apache Iceberg (via Glue Data Catalog)
                engineer + business views
 ```
 
+## Dashboard
+
+![Crypto pipeline dashboard — engineer and business views](screenshots/dashboard.png)
+
 ## Status — everything below is implemented and verified working
 
 | Component | Status |
